@@ -127,7 +127,11 @@ impl RayMaker for OriginCamera {
 
 fn main() {
     let scene = make_scene();
-    let imbuf = render_image(&scene, 800, 800);
+    let (width, height) = (800, 800);
+    let camera = OriginCamera{aperture: 1.0, width: width, height: height};
+    let mut imbuf = image::ImageBuf::new(width, height);
+    let pixel_renderer = |x, y| render_pixel(&camera, &scene, x, y);
+    render_image(&mut imbuf, pixel_renderer);
     let fout = File::create(&Path::new("result.png")).unwrap();
     let _ = image::ImageRgb8(imbuf).save(fout, image::PNG);
 }
@@ -143,16 +147,9 @@ fn make_scene() -> Scene {
     }
 }
 
-fn render_image(scene: &Scene, width: u32, height: u32) -> image::ImageBuf<image::Rgb<u8>> {
-    let mut imbuf = image::ImageBuf::new(width, height);
-    let camera = OriginCamera{aperture: 1.0, width: width, height: height};
-    for y in range(0, height) {
-        for x in range(0, width) {
-            let pixel = color_from_light(render_pixel(camera, scene, x, y));
-            imbuf.put_pixel(x, y, pixel);
-        }
-    }
-    imbuf
+fn render_pixel<T: RayMaker>(ray_maker: &T, scene: &Scene, x: u32, y: u32) -> image::Rgb<u8> {
+    let ray = ray_maker.make_ray(x, y);
+    color_from_light(trace_path(scene, ray))
 }
 
 fn color_from_light(light: Light) -> image::Rgb<u8> {
@@ -167,17 +164,24 @@ fn convert(x: f32) -> u8 {
     fenced.round() as u8
 }
 
-fn render_pixel<T: RayMaker>(ray_maker: T, scene: &Scene, x: u32, y: u32) -> Light {
-    let ray = ray_maker.make_ray(x, y);
-    trace_path(scene, ray)
-}
-
 fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
     match scene.intersect(ray) {
         None => scene.background(ray.direction),
         Some((object, point)) => {
             let reflected_light = Light::new(0.5, 0.5, 0.5);
             object.emittance(point).add(reflected_light)
+        }
+    }
+}
+
+type PixelRenderer<'a> = |u32, u32|:'a -> image::Rgb<u8>;
+
+fn render_image(buffer: &mut image::ImageBuf<image::Rgb<u8>>, render_pixel: PixelRenderer) {
+    let (width, height) = buffer.dimensions();
+    for y in range(0, height) {
+        for x in range(0, width) {
+            let pixel = render_pixel(x, y);
+            buffer.put_pixel(x, y, pixel);
         }
     }
 }
