@@ -47,7 +47,7 @@ fn test_scene_intersect() {
     let delta = 0.000001;
     let get_point = |scene: &Scene, ray| { scene.intersect(ray).unwrap().val1() };
     let sphere = box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 4.0};
-    let obj = Object {shape: sphere, material: Material};
+    let obj = Object {shape: sphere, material: box TestMaterial};
     let scene = Scene {objects: vec![obj], light_sources: vec![]};
     let ray_hit = Ray::new(Point::origin(), Vector3::new(0.0, 0.0, 1.0));
     assert!(Point3::new(0.0, 0.0, 1.0) == get_point(&scene, ray_hit));
@@ -72,12 +72,16 @@ fn cmp_float<F: PartialOrd>(f1: F, f2: F) -> Ordering {
 
 struct Object {
     shape: Box<Shape>,
-    material: Material
+    material: Box<Material>
 }
 
 impl Object {
-    fn emittance(&self, p: Point3<f32>) -> Light {
-        self.material.emittance(p)
+    fn emittance(&self, _: Point3<f32>) -> Light {
+        self.material.emittance()
+    }
+
+    fn reflectance(&self, p: Point3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light {
+        self.material.reflectance(self.normal(p), dir_in, dir_out)
     }
 
     fn intersect(&self, ray: Ray3<f32>) -> Option<(&Object, Point3<f32>)> {
@@ -85,6 +89,10 @@ impl Object {
             None => None,
             Some(point) => Some((self, point))
         }
+    }
+
+    fn normal(&self, point: Point3<f32>) -> Vector3<f32> {
+        self.shape.normal(point)
     }
 }
 
@@ -108,24 +116,65 @@ impl Light {
     fn add(&self, other: Light) -> Light {
         Light::new(self.red + other.red, self.green + other.green, self.blue + other.blue)
     }
+
+    fn mul_l(&self, other: Light) -> Light {
+        Light::new(self.red * other.red, self.green * other.green, self.blue * other.blue)
+    }
+
+    fn mul_s(&self, x: f32) -> Light {
+        Light::new(self.red * x, self.green * x, self.blue * x)
+    }
 }
 
 trait Shape {
     fn intersect(&self, Ray3<f32>) -> Option<Point3<f32>>;
+    fn normal(&self, Point3<f32>) -> Vector3<f32>;
 }
 
 impl Shape for Sphere<f32> {
     fn intersect(&self, ray: Ray3<f32>) -> Option<Point3<f32>> {
         (*self, ray).intersection()
     }
-    
+    fn normal(&self, point: Point3<f32>) -> Vector3<f32> {
+        point.sub_p(&self.center).normalize()
+    }
 }
 
-struct Material;
+#[test]
+fn test_sphere_normal() {
+    let sphere = Sphere {center: Point::origin(), radius: 1.0};
+    let n = sphere.normal(Point3::new(1.0, 0.0, 0.0));
+    assert!(n == Vector3::new(1.0, 0.0, 0.0));
+}
 
-impl Material {
-    fn emittance(&self, _p: Point3<f32>) -> Light {
+trait Material {
+    fn emittance(&self) -> Light;
+    fn reflectance(&self, normal: Vector3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light;
+}
+
+struct DiffuseMaterial {
+    diffuse: Light
+}
+
+impl Material for DiffuseMaterial {
+    fn emittance(&self) -> Light {
         Light::new(0.0, 0.0, 0.0)
+    }
+
+    fn reflectance(&self, n: Vector3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light {
+        self.diffuse.mul_s(n.dot(&dir_out))
+    }
+}
+
+struct TestMaterial;
+
+impl Material for TestMaterial {
+    fn emittance(&self) -> Light {
+        Light::new(0.0, 0.0, 0.0)
+    }
+
+    fn reflectance(&self, _: Vector3<f32>, _: Vector3<f32>, _: Vector3<f32>) -> Light {
+        Light::new(1.0, 1.0, 1.0)
     }
 }
 
@@ -166,7 +215,7 @@ fn test_origin_camera_make_ray() {
 }
 
 fn main() {
-    let scene = make_test_scene();
+    let scene = make_diffuse_scene();
     let camera = make_test_camera();
     let (width, height) = (1000, 1000);
     let mut imbuf = image::ImageBuf::new(width, height);
@@ -180,10 +229,21 @@ fn make_test_camera() -> OriginCamera {
     OriginCamera {aperture: 2.0, height: 1000, width: 1000}
 }
 
+fn make_diffuse_scene() -> Scene {
+    let obj = Object {
+        shape: box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 3.0},
+        material: box DiffuseMaterial { diffuse: Light::new(1.0, 1.0, 1.0) }
+    };
+    Scene {
+        objects: vec![obj],
+        light_sources: vec![]
+    }
+}
+
 fn make_test_scene() -> Scene {
     let obj = Object {
         shape: box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 3.0},
-        material: Material
+        material: box TestMaterial
     };
     Scene {
         objects: vec![obj],
@@ -235,8 +295,8 @@ fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
     match scene.intersect(ray) {
         None => scene.background(ray.direction),
         Some((object, point)) => {
-            let reflected_light = Light::new(1.0, 1.0, 1.0);
-            object.emittance(point).add(reflected_light)
+            let reflected = Light::new(1.0, 1.0, 1.0).mul_l(object.reflectance(point, Vector3::new(1.0, 0.0, 0.0), -ray.direction));
+            object.emittance(point).add(reflected)
         }
     }
 }
