@@ -40,6 +40,27 @@ impl Scene {
     }
 }
 
+#[test]
+fn test_scene_intersect() {
+    let delta = 0.000001;
+    let get_point = |scene: &Scene, ray| { scene.intersect(ray).unwrap().val1() };
+    let sphere = box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 4.0};
+    let obj = Object {shape: sphere, material: Material};
+    let scene = Scene {objects: vec![obj], light_sources: vec![]};
+    let ray_hit = Ray::new(Point::origin(), Vector3::new(0.0, 0.0, 1.0));
+    assert!(Point3::new(0.0, 0.0, 1.0) == get_point(&scene, ray_hit));
+    let ray_miss = Ray::new(Point3::new(10.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
+    assert!(scene.intersect(ray_miss).is_none());
+    let ray_border1 = Ray::new(Point3::new(4.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
+    assert!(Point3::new(4.0, 0.0, 5.0) == get_point(&scene, ray_border1));
+    let ray_near1 = Ray::new(Point3::new(4.0 + delta, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
+    assert!(scene.intersect(ray_near1).is_none());
+    let ray_near_oblique = Ray::new(Point::origin(), Vector3::new(12.0/5.0 + delta, 0.0, 9.0/5.0).normalize());
+    assert!(scene.intersect(ray_near_oblique).is_none());
+    let ray_hit_oblique = Ray::new(Point::origin(), Vector3::new(12.0/5.0, 0.0, 9.0/5.0).normalize());
+    assert!(scene.intersect(ray_hit_oblique).is_some());
+}
+
 fn cmp_float<F: PartialOrd>(f1: F, f2: F) -> Ordering {
     match f1.partial_cmp(&f2) {
         None => Less,
@@ -70,6 +91,7 @@ struct LightSource {
     light: Light
 }
 
+#[deriving(PartialEq)]
 struct Light {
     red: f32,
     green: f32,
@@ -117,23 +139,27 @@ struct OriginCamera {
 
 impl RayMaker for OriginCamera {
     fn make_ray(&self, x: u32, y: u32) -> Ray3<f32> {
-        let maximum = max(x, y) as f32;
-        let xx = self.aperture * ((x as f32) - (self.width as f32)/2.0)/maximum ;
-        let yy = self.aperture * ((y as f32) - (self.height as f32)/2.0)/maximum;
+        let maximum = max(self.width, self.height) as f32;
+        let to_dim = |val: f32, range: f32| self.aperture * (val - range/2.0) / maximum;
+        let xx = to_dim(x as f32, self.width as f32);
+        let yy = to_dim(y as f32, self.height as f32);
         let v = Vector3::new(xx, yy, 1.0).normalize();
-        Ray::new(Point3::new(0.0, 0.0, 0.0), v)
+        Ray::new(Point::origin(), v)
     }
 }
 
 #[test]
 fn test_origin_camera_make_ray() {
     let cam = OriginCamera {aperture: 1.0, height: 1000, width: 1000};
-    let ray_center = Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
-    let ray_corner = Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.5, 0.5, 1.0).normalize());
+    let ray_from_origin = |x, y, z| Ray::new(Point::origin(), Vector3::new(x, y, z).normalize());
+    let ray_center = ray_from_origin(0.0, 0.0, 1.0);
+    let ray_corner = ray_from_origin(0.5, 0.5, 1.0);
+    let ray_corner1 = ray_from_origin(-0.5, -0.5, 1.0);
     assert!(ray_center == cam.make_ray(500, 500));
     assert!(ray_corner == cam.make_ray(1000, 1000));
+    assert!(ray_corner1 == cam.make_ray(0, 0));
     let cam2 = OriginCamera {aperture: 2.0, height: 1000, width: 1000};
-    let ray_corner2 = Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0).normalize());
+    let ray_corner2 = ray_from_origin(1.0, 1.0, 1.0);
     assert!(ray_corner2 == cam2.make_ray(1000, 1000));
 }
 
@@ -168,6 +194,22 @@ fn render_pixel<T: RayMaker>(ray_maker: &T, scene: &Scene, x: u32, y: u32) -> im
     color_from_light(trace_path(scene, ray))
 }
 
+#[test]
+fn test_render_pixel() {
+    let scene = make_test_scene();
+    let camera = make_test_camera();
+    let black = image::Rgb(0, 0, 0);
+    assert!(black == render_pixel(&camera, &scene, 1, 1));
+    assert!(black == render_pixel(&camera, &scene, 1000, 1));
+    assert!(black == render_pixel(&camera, &scene, 1, 1000));
+    assert!(black == render_pixel(&camera, &scene, 1000, 1000));
+    assert!(black != render_pixel(&camera, &scene, 500, 500));
+    assert!(black == render_pixel(&camera, &scene, 500, 124));
+    assert!(black != render_pixel(&camera, &scene, 500, 125));
+    assert!(black == render_pixel(&camera, &scene, 500, 1000-124));
+    assert!(black != render_pixel(&camera, &scene, 500, 1000-125));
+}
+
 fn color_from_light(light: Light) -> image::Rgb<u8> {
     image::Rgb(convert(light.red), convert(light.green), convert(light.blue))
 }
@@ -191,10 +233,26 @@ fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
     match scene.intersect(ray) {
         None => scene.background(ray.direction),
         Some((object, point)) => {
-            let reflected_light = Light::new(0.5, 0.5, 0.5);
+            let reflected_light = Light::new(1.0, 1.0, 1.0);
             object.emittance(point).add(reflected_light)
         }
     }
+}
+
+#[test]
+fn test_trace_path() {
+    let delta = 0.000001f32;
+    let assert_tp = |scene: &Scene, ray, r, g, b| assert!(Light::new(r, g, b) == trace_path(scene, ray));
+    let scene = make_test_scene();
+    let origin = Point::origin();
+    let ray_miss = Ray::new(origin, Vector3::new(12.0/5.0 + delta, 0.0, 16.0/5.0).normalize());
+    assert_tp(&scene, ray_miss, 0.0, 0.0, 0.0);
+    let ray_hit = Ray::new(origin, Vector3::new(12.0/5.0, 0.0, 16.0/5.0).normalize());
+    assert_tp(&scene, ray_hit, 1.0, 1.0, 1.0);
+    let ray_miss2 = Ray::new(origin, Vector3::new(-12.0/5.0 - delta, 0.0, 16.0/5.0).normalize());
+    assert_tp(&scene, ray_miss2, 0.0, 0.0, 0.0);
+    let ray_hit2 = Ray::new(origin, Vector3::new(-12.0/5.0, 0.0, 16.0/5.0).normalize());
+    assert_tp(&scene, ray_hit2, 1.0, 1.0, 1.0);
 }
 
 type PixelRenderer<'a> = |u32, u32|:'a -> image::Rgb<u8>;
