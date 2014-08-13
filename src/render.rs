@@ -14,14 +14,15 @@ pub fn render_pixel<T: RayMaker>(ray_maker: &T, scene: &Scene, x: u32, y: u32) -
     color_from_light(trace_path(scene, ray))
 }
 
-pub fn render_image(buffer: &mut image::ImageBuf<image::Rgb<u8>>, render_pixel: PixelRenderer) {
-    let (width, height) = buffer.dimensions();
+pub fn render_image(width: u32, height: u32, render_pixel: PixelRenderer) -> image::ImageBuf<image::Rgb<u8>> {
+    let mut buffer = image::ImageBuf::new(width, height);
     for y in range(0, height) {
         for x in range(0, width) {
             let pixel = render_pixel(x, y);
             buffer.put_pixel(x, y, pixel);
         }
     }
+    buffer
 }
 
 type PixelRenderer<'a> = |u32, u32|:'a -> image::Rgb<u8>;
@@ -66,11 +67,12 @@ mod tests {
 
     #[test]
     fn test_render_image() {
+        let (width, height) = (100, 100);
         let mut count = 0i;
-        let mut imbuf: image::ImageBuf<image::Rgb<u8>> = image::ImageBuf::new(100, 100);
+        let mut imbuf: image::ImageBuf<image::Rgb<u8>>;
         { // We need a scope here because we are borrowing `count`.
             let renderer = |_, _| {count += 1; image::Rgb(0u8, 0, 0)};
-            render_image(&mut imbuf, renderer);
+            imbuf = render_image(width, height, renderer);
         } // Now we can use `count`.
         assert!(count == 100 * 100);
         assert!(imbuf.get_pixel(34, 21) == image::Rgb(0, 0, 0));

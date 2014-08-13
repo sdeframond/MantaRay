@@ -30,11 +30,10 @@ mod test_helpers;
 
 fn main() {
     let scene = make_diffuse_scene();
-    let camera = OriginCamera {aperture: 2.0, height: 1000, width: 1000};
     let (width, height) = (1000, 1000);
-    let mut imbuf = image::ImageBuf::new(width, height);
+    let camera = OriginCamera {aperture: 2.0, height: width, width: height};
     let pixel_renderer = |x, y| render_pixel(&camera, &scene, x, y);
-    render_image(&mut imbuf, pixel_renderer);
+    let imbuf = render_image(width, height, pixel_renderer);
     let fout = File::create(&Path::new("result.png")).unwrap();
     let _ = image::ImageRgb8(imbuf).save(fout, image::PNG);
 }
