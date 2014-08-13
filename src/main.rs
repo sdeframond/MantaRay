@@ -7,7 +7,7 @@ use cgmath::point::{Point, Point3};
 use cgmath::ray::{Ray, Ray3};
 use cgmath::intersect::Intersect;
 use cgmath::sphere::Sphere;
-use cgmath::vector::{EuclideanVector, Vector3};
+use cgmath::vector::{EuclideanVector, Vector, Vector3};
 use image::GenericImage;
 use std::cmp::PartialOrd;
 use std::io::File;
@@ -125,10 +125,22 @@ impl RayMaker for OriginCamera {
     }
 }
 
+#[test]
+fn test_origin_camera_make_ray() {
+    let cam = OriginCamera {aperture: 1.0, height: 1000, width: 1000};
+    let ray_center = Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
+    let ray_corner = Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.5, 0.5, 1.0).normalize());
+    assert!(ray_center == cam.make_ray(500, 500));
+    assert!(ray_corner == cam.make_ray(1000, 1000));
+    let cam2 = OriginCamera {aperture: 2.0, height: 1000, width: 1000};
+    let ray_corner2 = Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0).normalize());
+    assert!(ray_corner2 == cam2.make_ray(1000, 1000));
+}
+
 fn main() {
-    let scene = make_scene();
-    let (width, height) = (800, 800);
-    let camera = OriginCamera{aperture: 1.0, width: width, height: height};
+    let scene = make_test_scene();
+    let camera = make_test_camera();
+    let (width, height) = (1000, 1000);
     let mut imbuf = image::ImageBuf::new(width, height);
     let pixel_renderer = |x, y| render_pixel(&camera, &scene, x, y);
     render_image(&mut imbuf, pixel_renderer);
@@ -136,9 +148,13 @@ fn main() {
     let _ = image::ImageRgb8(imbuf).save(fout, image::PNG);
 }
 
-fn make_scene() -> Scene {
+fn make_test_camera() -> OriginCamera {
+    OriginCamera {aperture: 2.0, height: 1000, width: 1000}
+}
+
+fn make_test_scene() -> Scene {
     let obj = Object {
-        shape: box Sphere {center: Point3::new(0.0f32, 0.0, 10.0), radius: 4.0},
+        shape: box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 3.0},
         material: Material
     };
     Scene {
@@ -154,6 +170,13 @@ fn render_pixel<T: RayMaker>(ray_maker: &T, scene: &Scene, x: u32, y: u32) -> im
 
 fn color_from_light(light: Light) -> image::Rgb<u8> {
     image::Rgb(convert(light.red), convert(light.green), convert(light.blue))
+}
+
+#[test]
+fn color_from_light_test() {
+    let light = Light::new(0.5, 0.5, 0.5);
+    let color = image::Rgb(128u8, 128, 128);
+    assert!(color_from_light(light) == color);
 }
 
 fn convert(x: f32) -> u8 {
@@ -184,4 +207,16 @@ fn render_image(buffer: &mut image::ImageBuf<image::Rgb<u8>>, render_pixel: Pixe
             buffer.put_pixel(x, y, pixel);
         }
     }
+}
+
+#[test]
+fn test_render_image() {
+    let mut count = 0i;
+    let mut imbuf: image::ImageBuf<image::Rgb<u8>> = image::ImageBuf::new(100, 100);
+    { // We need a scope here because we are borrowing `count`.
+        let renderer = |_, _| {count += 1; image::Rgb(0u8, 0, 0)};
+        render_image(&mut imbuf, renderer);
+    } // Now we can use `count`.
+    assert!(count == 100 * 100);
+    assert!(imbuf.get_pixel(34, 21) == image::Rgb(0, 0, 0));
 }
