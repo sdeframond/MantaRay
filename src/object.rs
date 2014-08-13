@@ -2,9 +2,9 @@ use cgmath::vector::Vector3;
 use cgmath::ray::Ray3;
 use cgmath::point::Point3;
 
-use shape::*;
-use material::*;
-use light::*;
+use shape::Shape;
+use material::Material;
+use light::Light;
 
 pub struct Object {
     pub shape: Box<Shape>,

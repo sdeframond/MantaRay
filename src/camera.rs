@@ -3,7 +3,7 @@ use cgmath::point::{Point};
 use cgmath::ray::{Ray, Ray3};
 use cgmath::vector::{EuclideanVector, Vector3};
 
-pub trait RayMaker {
+pub trait Camera {
     fn make_ray(&self, x: u32, y: u32) -> Ray3<f32>;
 }
 
@@ -13,7 +13,7 @@ pub struct OriginCamera {
     pub width: u32
 }
 
-impl RayMaker for OriginCamera {
+impl Camera for OriginCamera {
     fn make_ray(&self, x: u32, y: u32) -> Ray3<f32> {
         let maximum = max(self.width, self.height) as f32;
         let to_dim = |val: f32, range: f32| self.aperture * (val - range/2.0) / maximum;

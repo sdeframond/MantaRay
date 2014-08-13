@@ -1,10 +1,10 @@
 use cgmath::ray::Ray3;
 use cgmath::vector::Vector3;
 
-use scene::*;
-use light::*;
-use shape::*;
-use material::*;
+use scene::Scene;
+use light::Light;
+use shape::Shape;
+use material::Material;
 
 pub fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
     match scene.intersect(ray) {
@@ -23,9 +23,9 @@ mod tests {
     use cgmath::vector::{EuclideanVector, Vector3};
     use cgmath::point::Point;
 
-    use pathtracing::*;
-    use light::*;
-    use test_helpers::*;
+    use pathtracing::trace_path;
+    use light::Light;
+    use test_helpers::make_test_scene;
 
     macro_rules! assert_tp(
         ($scene:expr, $ray:expr, $r:expr, $g:expr, $b:expr) => (

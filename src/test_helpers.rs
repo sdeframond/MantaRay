@@ -1,10 +1,10 @@
 use cgmath::sphere::Sphere;
 use cgmath::point::Point3;
 
-use scene::*;
-use object::*;
-use material::*;
-use camera::*;
+use scene::Scene;
+use object::Object;
+use material::TestMaterial;
+use camera::OriginCamera;
 
 pub fn make_test_scene() -> Scene {
     let obj = Object {

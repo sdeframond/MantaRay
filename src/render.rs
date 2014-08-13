@@ -4,21 +4,21 @@ use cgmath::point::Point;
 use image::GenericImage;
 use std::num::Bounded;
 
-use scene::*;
-use light::*;
-use camera::*;
-use pathtracing::*;
+use scene::Scene;
+use light::Light;
+use camera::Camera;
+use pathtracing::trace_path;
 
-pub fn render_pixel<T: RayMaker>(ray_maker: &T, scene: &Scene, x: u32, y: u32) -> image::Rgb<u8> {
-    let ray = ray_maker.make_ray(x, y);
+pub fn pixel<T: Camera>(camera: &T, scene: &Scene, x: u32, y: u32) -> image::Rgb<u8> {
+    let ray = camera.make_ray(x, y);
     color_from_light(trace_path(scene, ray))
 }
 
-pub fn render_image(width: u32, height: u32, render_pixel: PixelRenderer) -> image::ImageBuf<image::Rgb<u8>> {
+pub fn image(width: u32, height: u32, renderer: PixelRenderer) -> image::ImageBuf<image::Rgb<u8>> {
     let mut buffer = image::ImageBuf::new(width, height);
     for y in range(0, height) {
         for x in range(0, width) {
-            let pixel = render_pixel(x, y);
+            let pixel = renderer(x, y);
             buffer.put_pixel(x, y, pixel);
         }
     }
@@ -45,34 +45,34 @@ mod tests {
     extern crate image;
 
     use image::GenericImage;
+    use render;
 
-    use render::*;
-    use test_helpers::*;
+    use test_helpers::{make_test_scene, make_test_camera};
 
     #[test]
-    fn test_render_pixel() {
+    fn test_pixel() {
         let scene = make_test_scene();
         let camera = make_test_camera();
         let black = image::Rgb(0, 0, 0);
-        assert!(black == render_pixel(&camera, &scene, 1, 1));
-        assert!(black == render_pixel(&camera, &scene, 1000, 1));
-        assert!(black == render_pixel(&camera, &scene, 1, 1000));
-        assert!(black == render_pixel(&camera, &scene, 1000, 1000));
-        assert!(black != render_pixel(&camera, &scene, 500, 500));
-        assert!(black == render_pixel(&camera, &scene, 500, 124));
-        assert!(black != render_pixel(&camera, &scene, 500, 125));
-        assert!(black == render_pixel(&camera, &scene, 500, 1000-124));
-        assert!(black != render_pixel(&camera, &scene, 500, 1000-125));
+        assert!(black == render::pixel(&camera, &scene, 1, 1));
+        assert!(black == render::pixel(&camera, &scene, 1000, 1));
+        assert!(black == render::pixel(&camera, &scene, 1, 1000));
+        assert!(black == render::pixel(&camera, &scene, 1000, 1000));
+        assert!(black != render::pixel(&camera, &scene, 500, 500));
+        assert!(black == render::pixel(&camera, &scene, 500, 124));
+        assert!(black != render::pixel(&camera, &scene, 500, 125));
+        assert!(black == render::pixel(&camera, &scene, 500, 1000-124));
+        assert!(black != render::pixel(&camera, &scene, 500, 1000-125));
     }
 
     #[test]
-    fn test_render_image() {
+    fn test_image() {
         let (width, height) = (100, 100);
         let mut count = 0i;
         let mut imbuf: image::ImageBuf<image::Rgb<u8>>;
         { // We need a scope here because we are borrowing `count`.
             let renderer = |_, _| {count += 1; image::Rgb(0u8, 0, 0)};
-            imbuf = render_image(width, height, renderer);
+            imbuf = render::image(width, height, renderer);
         } // Now we can use `count`.
         assert!(count == 100 * 100);
         assert!(imbuf.get_pixel(34, 21) == image::Rgb(0, 0, 0));

@@ -2,10 +2,10 @@ use cgmath::vector::{EuclideanVector, Vector3};
 use cgmath::ray::Ray3;
 use cgmath::point::{Point, Point3};
 
-use shape::*;
-use object::*;
-use light::*;
-use utils::*;
+use shape::Shape;
+use object::Object;
+use light::{Light, LightSource};
+use utils::cmp_float;
 
 pub struct Scene {
     pub objects: Vec<Object>,
@@ -42,9 +42,9 @@ mod tests {
     use cgmath::ray::Ray;
     use cgmath::point::{Point, Point3};
 
-    use scene::*;
-    use object::*;
-    use material::*;
+    use scene::Scene;
+    use object::Object;
+    use material::TestMaterial;
 
     #[test]
     fn test_scene_intersect() {
