@@ -1,3 +1,5 @@
+#![feature(macro_rules)]
+
 extern crate image;
 extern crate cgmath;
 extern crate num;
@@ -239,20 +241,25 @@ fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
     }
 }
 
+macro_rules! assert_tp(
+    ($scene:expr, $ray:expr, $r:expr, $g:expr, $b:expr) => (
+        assert!(Light::new($r, $g, $b) == trace_path($scene, $ray))
+    );
+)
+
 #[test]
 fn test_trace_path() {
     let delta = 0.000001f32;
-    let assert_tp = |scene: &Scene, ray, r, g, b| assert!(Light::new(r, g, b) == trace_path(scene, ray));
     let scene = make_test_scene();
     let origin = Point::origin();
     let ray_miss = Ray::new(origin, Vector3::new(12.0/5.0 + delta, 0.0, 16.0/5.0).normalize());
-    assert_tp(&scene, ray_miss, 0.0, 0.0, 0.0);
+    assert_tp!(&scene, ray_miss, 0.0, 0.0, 0.0);
     let ray_hit = Ray::new(origin, Vector3::new(12.0/5.0, 0.0, 16.0/5.0).normalize());
-    assert_tp(&scene, ray_hit, 1.0, 1.0, 1.0);
+    assert_tp!(&scene, ray_hit, 1.0, 1.0, 1.0);
     let ray_miss2 = Ray::new(origin, Vector3::new(-12.0/5.0 - delta, 0.0, 16.0/5.0).normalize());
-    assert_tp(&scene, ray_miss2, 0.0, 0.0, 0.0);
+    assert_tp!(&scene, ray_miss2, 0.0, 0.0, 0.0);
     let ray_hit2 = Ray::new(origin, Vector3::new(-12.0/5.0, 0.0, 16.0/5.0).normalize());
-    assert_tp(&scene, ray_hit2, 1.0, 1.0, 1.0);
+    assert_tp!(&scene, ray_hit2, 1.0, 1.0, 1.0);
 }
 
 type PixelRenderer<'a> = |u32, u32|:'a -> image::Rgb<u8>;
