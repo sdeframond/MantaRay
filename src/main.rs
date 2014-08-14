@@ -39,22 +39,24 @@ fn main() {
 fn make_scene() -> Scene {
     let obj = Object {
         shape: box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 1.0},
-        material: box DiffuseMaterial { diffuse: Light::new(1.0, 1.0, 1.0) }
+        material: box DiffuseMaterial { diffuse: Light::white(0.6), specular: Light::white(0.4), shininess: 50.0 }
     };
-    let p1 = Point3::new(-2.0f32, -2.0, 4.0);
-    let l1 = Object {
-        shape: box Sphere {center: p1, radius: 0.1},
-        material: box DiffuseMaterial { diffuse: Light::new(1.0, 1.0, 1.0) }
-    };
-    let light_src1 = box LightSource::new(p1, Light::new(2.0, 0.8, 0.8));
-    let p2 = Point3::new(2.0f32, 1.0, 5.0);
-    let l2 = Object {
-        shape: box Sphere {center: p2, radius: 0.1},
-        material: box DiffuseMaterial { diffuse: Light::new(1.0, 1.0, 1.0) }
-    };
-    let light_src2 = box LightSource::new(p2, Light::new(0.8, 2.0, 0.8));
+    let (light_src1, l1) = make_light_source(-2.0, -2.0, 4.0, 4.0, 2.0, 2.0);
+    let (light_src2, l2) = make_light_source(2.0, 1.0, 5.0, 2.0, 4.0, 2.0);
     Scene {
         objects: vec![obj, l1, l2],
-        light_sources: vec![light_src1, light_src2]
+        light_sources: vec![box light_src1, box light_src2]
     }
+}
+
+fn make_light_source(x: f32, y: f32, z: f32, red: f32, green: f32, blue: f32) -> (LightSource, Object) {
+    let position = Point3::new(x, y, z);
+    let power = Light::new(red, green, blue);
+    let light_mat = DiffuseMaterial { diffuse: Light::white(1.0), specular: Light::zero(), shininess: 0.0 };
+    let obj = Object {
+        shape: box Sphere {center: position, radius: 0.1},
+        material: box light_mat
+    };
+    let ls = LightSource::new(position, power);
+    (ls, obj)
 }

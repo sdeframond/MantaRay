@@ -46,4 +46,8 @@ impl Light {
     pub fn zero() -> Light {
         Light::new(0.0, 0.0, 0.0)
     }
+
+    pub fn white(power: f32) -> Light {
+        Light::new(power, power, power)
+    }
 }
