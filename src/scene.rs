@@ -76,7 +76,6 @@ mod tests {
         let p2 = Object {shape: box Plane::from_abcd(0.0f32, 0.0, -1.0, 2.0), material: box TestMaterial};
         let scene = Scene {objects: vec![p1, p2], light_sources: vec![]};
         let ray = Ray::new(Point::origin(), Vector3::new(0.0, 0.0, 1.0));
-        let p = get_point(&scene, ray);
         assert!(Point3::new(0.0, 0.0, 1.0) == get_point(&scene, ray));
     }
 }

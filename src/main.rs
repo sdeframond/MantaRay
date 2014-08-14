@@ -9,7 +9,7 @@ use std::io::File;
 
 use camera::OriginCamera;
 use light::{Light, LightSource};
-use material::DiffuseMaterial;
+use material::{EmitterMaterial, DiffuseMaterial};
 use object::Object;
 use scene::Scene;
 use shape::{Sphere, Plane};
@@ -56,7 +56,7 @@ fn make_scene() -> Scene {
 fn make_light_source(x: f32, y: f32, z: f32, red: f32, green: f32, blue: f32) -> (LightSource, Object) {
     let position = Point3::new(x, y, z);
     let power = Light::new(red, green, blue);
-    let light_mat = DiffuseMaterial { diffuse: Light::white(1.0), specular: Light::zero(), shininess: 0.0 };
+    let light_mat = EmitterMaterial::new(red/5.0, green/5.0, blue/5.0);
     let obj = Object {
         shape: box Sphere {center: position, radius: 0.1},
         material: box light_mat

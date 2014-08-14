@@ -2,7 +2,7 @@ use light::Light;
 use cgmath::vector::{dot, Vector, Vector3};
 
 pub trait Material {
-    fn emittance(&self) -> Light;
+    fn emittance(&self, Vector3<f32>, Vector3<f32>) -> Light;
     fn reflectance(&self, normal: Vector3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light;
 }
 
@@ -13,7 +13,7 @@ pub struct DiffuseMaterial {
 }
 
 impl Material for DiffuseMaterial {
-    fn emittance(&self) -> Light {
+    fn emittance(&self, _n: Vector3<f32>, _dir: Vector3<f32>) -> Light {
         Light::new(0.0, 0.0, 0.0)
     }
 
@@ -31,12 +31,32 @@ impl Material for DiffuseMaterial {
     }
 }
 
+pub struct EmitterMaterial {
+    emittance: Light
+}
+
+impl EmitterMaterial {
+    pub fn new(r: f32, g: f32, b: f32) -> EmitterMaterial {
+        EmitterMaterial { emittance: Light::new(r,g,b) }
+    }
+}
+
+impl Material for EmitterMaterial {
+    fn emittance(&self, n: Vector3<f32>, dir: Vector3<f32>) -> Light {
+        self.emittance.mul_s(dot(n, dir))
+    }
+
+    fn reflectance(&self, _n: Vector3<f32>, _dir_in: Vector3<f32>, _dir_out: Vector3<f32>) -> Light {
+        Light::zero()
+    }
+}
+
 #[cfg(test)]
 pub struct TestMaterial;
 
 #[cfg(test)]
 impl Material for TestMaterial {
-    fn emittance(&self) -> Light {
+    fn emittance(&self, _n: Vector3<f32>, _dir: Vector3<f32>) -> Light {
         Light::new(1.0, 1.0, 1.0)
     }
 

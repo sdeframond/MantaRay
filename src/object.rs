@@ -12,8 +12,8 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn emittance(&self, _: Point3<f32>) -> Light {
-        self.material.emittance()
+    pub fn emittance(&self, p: Point3<f32>, dir: Vector3<f32>) -> Light {
+        self.material.emittance(self.normal(p), dir)
     }
 
     pub fn reflectance(&self, p: Point3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light {
