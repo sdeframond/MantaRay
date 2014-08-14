@@ -5,7 +5,6 @@ extern crate image;
 extern crate num;
 
 use cgmath::point::Point3;
-use cgmath::sphere::Sphere;
 use std::io::File;
 
 use camera::OriginCamera;
@@ -13,6 +12,7 @@ use light::{Light, LightSource};
 use material::DiffuseMaterial;
 use object::Object;
 use scene::Scene;
+use shape::{Sphere, Plane};
 
 mod camera;
 mod light;
@@ -37,14 +37,18 @@ fn main() {
 }
 
 fn make_scene() -> Scene {
-    let obj = Object {
+    let sphere = Object {
         shape: box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 1.0},
         material: box DiffuseMaterial { diffuse: Light::white(0.6), specular: Light::white(0.4), shininess: 50.0 }
     };
+    let plane = Object {
+        shape: box Plane::from_abcd(0.0f32, -1.0, 0.0, 0.8),
+        material: box DiffuseMaterial { diffuse: Light::white(0.6), specular: Light::white(0.4), shininess: 50.0 }
+    };
     let (light_src1, l1) = make_light_source(-2.0, -2.0, 4.0, 4.0, 2.0, 2.0);
-    let (light_src2, l2) = make_light_source(2.0, 1.0, 5.0, 2.0, 4.0, 2.0);
+    let (light_src2, l2) = make_light_source(2.0, -1.0, 5.0, 2.0, 4.0, 2.0);
     Scene {
-        objects: vec![obj, l1, l2],
+        objects: vec![sphere, plane, l1, l2],
         light_sources: vec![box light_src1, box light_src2]
     }
 }
