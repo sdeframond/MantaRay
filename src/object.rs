@@ -7,8 +7,8 @@ use material::Material;
 use light::Light;
 
 pub struct Object {
-    pub shape: Box<Shape>,
-    pub material: Box<Material>
+    pub shape: Box<Shape + Send + Share>,
+    pub material: Box<Material + Send + Share>
 }
 
 impl Object {
