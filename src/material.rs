@@ -24,7 +24,7 @@ impl Material for DiffuseMaterial {
             let dir_in_reflection = dir_in.add_v(&n.mul_s(2.0).mul_s(proj));
             let alignment = dot(dir_out, dir_in_reflection);
             let specular = self.specular.mul_s(alignment.powf(self.shininess));
-            diffuse.add(specular)
+            diffuse + specular
         } else {
             Light::zero()
         }

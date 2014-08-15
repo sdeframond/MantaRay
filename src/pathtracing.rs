@@ -15,9 +15,9 @@ pub fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
             for source in scene.light_sources.iter() {
                 let dir_in = point.sub_p(&source.origin()).normalize();
                 let reflectance = object.reflectance(point, dir_in, -ray.direction);
-                reflected = reflected.add(source.intensity(point).mul_l(reflectance));
+                reflected = reflected + source.intensity(point).mul_l(reflectance);
             }
-            object.emittance(point, -ray.direction).add(reflected)
+            reflected + object.emittance(point, -ray.direction)
         }
     }
 }

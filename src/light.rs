@@ -31,10 +31,6 @@ impl Light {
         Light {red: red, green: green, blue: blue}
     }
 
-    pub fn add(&self, other: Light) -> Light {
-        Light::new(self.red + other.red, self.green + other.green, self.blue + other.blue)
-    }
-
     pub fn mul_l(&self, other: Light) -> Light {
         Light::new(self.red * other.red, self.green * other.green, self.blue * other.blue)
     }
@@ -49,5 +45,11 @@ impl Light {
 
     pub fn white(power: f32) -> Light {
         Light::new(power, power, power)
+    }
+}
+
+impl Add<Light, Light> for Light {
+    fn add(&self, other: &Light) -> Light {
+        Light::new(self.red + other.red, self.green + other.green, self.blue + other.blue)
     }
 }
