@@ -1,5 +1,5 @@
 [root]
-name = "ray-rs"
+name = "mantaray"
 version = "0.0.1"
 dependencies = [
  "cgmath 0.0.1 (git+https://github.com/bjz/cgmath-rs.git#38364a64398eb09fed6fa3029cbb0ed7e2babddf)",

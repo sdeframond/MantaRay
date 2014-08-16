@@ -1,6 +1,6 @@
 [package]
 
-name = "ray-rs"
+name = "mantaray"
 version = "0.0.1"
 authors = ["Samuel de Framond <samuel@framond.fr>"]
 
