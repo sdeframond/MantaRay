@@ -20,11 +20,15 @@ impl Object {
         self.material.reflectance(self.normal(p), dir_in, dir_out)
     }
 
-    pub fn intersect(&self, ray: Ray3<f32>) -> Option<(&Object, Point3<f32>)> {
+    pub fn intersect(&self, ray: Ray3<f32>) -> Option<(&Object, &Shape, Point3<f32>)> {
         match self.shape.intersect(ray) {
             None => None,
-            Some(point) => Some((self, point))
+            Some((shape, point)) => Some((self, shape, point))
         }
+    }
+
+    pub fn intersect_except_shape(&self, shape: &Shape, ray: Ray3<f32>) -> bool {
+        self.shape.intersect_except_shape(shape, ray)
     }
 
     pub fn normal(&self, point: Point3<f32>) -> Vector3<f32> {

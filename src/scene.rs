@@ -14,23 +14,29 @@ pub struct Scene {
 
 impl Scene {
     pub fn background(&self, _direction: Vector3<f32>) -> Light {
-        Light::new(0.0, 0.0, 0.0)
+        Light::zero()
     }
 
-    pub fn intersect(&self, ray: Ray3<f32>) -> Option<(&Object, Point3<f32>)> {
-        let mut intersections: Vec<(&Object, Point3<f32>)> = self.objects.iter()
+    pub fn intersect(&self, ray: Ray3<f32>) -> Option<(&Object, &Shape, Point3<f32>)> {
+        let mut intersections: Vec<(&Object, &Shape, Point3<f32>)> = self.objects.iter()
             .map(|obj| obj.intersect(ray))
             .filter(|opt| opt.is_some())
             .map(|opt| opt.unwrap())
             .collect();
-        let distance_cmp = |v1: &(&Object, Point3<f32>), v2: &(&Object, Point3<f32>)| {
+        let distance_cmp = |v1: &(&Object, &Shape, Point3<f32>), v2: &(&Object, &Shape, Point3<f32>)| {
             cmp_float(
-                ray.origin.sub_p(v2.ref1()).length(),
-                ray.origin.sub_p(v1.ref1()).length()
+                ray.origin.sub_p(v2.ref2()).length(),
+                ray.origin.sub_p(v1.ref2()).length()
             )
         };
         intersections.sort_by(distance_cmp);
         intersections.pop()
+    }
+
+    pub fn intersect_except_shape(&self, shape: &Shape, ray: Ray3<f32>) -> bool {
+        ! self.objects.iter().any(|obj| {
+            obj.intersect_except_shape(shape, ray)
+        })
     }
 }
 
@@ -47,7 +53,7 @@ mod tests {
     use material::TestMaterial;
 
     fn get_point(scene: &Scene, ray: Ray3<f32>) -> Point3<f32> {
-        scene.intersect(ray).unwrap().val1()
+        scene.intersect(ray).unwrap().val2()
     }
 
     #[test]

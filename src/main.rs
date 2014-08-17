@@ -124,7 +124,7 @@ fn make_scene() -> Scene {
     let (light_src1, l1) = make_light_source(-2.0, -2.0, 4.0, 4.0, 2.0, 2.0);
     let (light_src2, l2) = make_light_source(2.0, -1.0, 5.0, 2.0, 4.0, 2.0);
     Scene {
-        objects: vec![sphere, plane, l1, l2],
+        objects: vec![sphere, plane],
         light_sources: vec![box light_src1, box light_src2]
     }
 }

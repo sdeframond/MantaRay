@@ -1,4 +1,4 @@
-use cgmath::ray::Ray3;
+use cgmath::ray::{Ray, Ray3};
 use cgmath::vector::EuclideanVector;
 use cgmath::point::Point;
 
@@ -10,12 +10,16 @@ use material::Material;
 pub fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
     match scene.intersect(ray) {
         None => scene.background(ray.direction),
-        Some((object, point)) => {
-            let mut reflected = Light::new(0.0, 0.0, 0.0);
+        Some((object, shape, point)) => {
+            let mut reflected = Light::zero();
             for source in scene.light_sources.iter() {
-                let dir_in = point.sub_p(&source.origin()).normalize();
-                let reflectance = object.reflectance(point, dir_in, -ray.direction);
-                reflected = reflected + source.intensity(point).mul_l(reflectance);
+                let shadow_ray = Ray::new(point, (source.origin().sub_p(&point)).normalize());
+                let illuminated = scene.intersect_except_shape(shape, shadow_ray);
+                if illuminated {
+                    let dir_in = point.sub_p(&source.origin()).normalize();
+                    let reflectance = object.reflectance(point, dir_in, -ray.direction);
+                    reflected = reflected + source.intensity(point).mul_l(reflectance);
+                }
             }
             reflected + object.emittance(point, -ray.direction)
         }
