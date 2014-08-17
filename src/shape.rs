@@ -20,55 +20,53 @@ trait PrivateShape {
     fn equals_shape(&self, &Shape) -> bool;
 }
 
-impl Shape for Sphere<f32> {
-    fn intersect(&self, ray: Ray3<f32>) -> Option<(&Shape, Point3<f32>)> {
-        match (*self, ray).intersection() {
-            None => None,
-            Some(point) => Some((self as &Shape, point))
+macro_rules! impl_private_shape(
+    ($t:ty) => (
+        impl PrivateShape for $t {
+            fn as_any(&self) -> &Any {
+                self as &Any
+            }
+
+            fn equals_shape(&self, other: &Shape) -> bool {
+                match other.as_any().downcast_ref::<$t>() {
+                    None => false,
+                    Some(sphere) => self == sphere
+                }
+            }
         }
-    }
+    )
+)
+
+macro_rules! cgmath_intersect(
+    () => (
+        fn intersect(&self, ray: Ray3<f32>) -> Option<(&Shape, Point3<f32>)> {
+            match (*self, ray).intersection() {
+                None => None,
+                Some(value) => Some((self as &Shape, value))
+            }
+        }
+    )
+)
+
+impl_private_shape!(Sphere<f32>)
+
+impl Shape for Sphere<f32> {
+
+    cgmath_intersect!()
 
     fn normal(&self, point: Point3<f32>) -> Vector3<f32> {
         point.sub_p(&self.center).normalize()
     }
 }
 
-impl PrivateShape for Sphere<f32> {
-    fn as_any(&self) -> &Any {
-        self as &Any
-    }
-
-    fn equals_shape(&self, other: &Shape) -> bool {
-        match other.as_any().downcast_ref::<Sphere<f32>>() {
-            None => false,
-            Some(sphere) => self == sphere
-        }
-    }
-}
+impl_private_shape!(Plane<f32>)
 
 impl Shape for Plane<f32> {
-    fn intersect(&self, ray: Ray3<f32>) -> Option<(&Shape, Point3<f32>)> {
-        match (*self, ray).intersection() {
-            None => None,
-            Some(point) => Some((self as &Shape, point))
-        }
-    }
+
+    cgmath_intersect!()
 
     fn normal(&self, _: Point3<f32>) -> Vector3<f32> {
         self.n
-    }
-}
-
-impl PrivateShape for Plane<f32> {
-    fn as_any(&self) -> &Any {
-        self as &Any
-    }
-
-    fn equals_shape(&self, other: &Shape) -> bool {
-        match other.as_any().downcast_ref::<Plane<f32>>() {
-            None => false,
-            Some(plane) => self == plane
-        }
     }
 }
 
