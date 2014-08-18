@@ -27,8 +27,8 @@ impl Object {
         }
     }
 
-    pub fn intersect_except_shape(&self, shape: &Shape, ray: Ray3<f32>) -> bool {
-        self.shape.intersect_except_shape(shape, ray)
+    pub fn shadow_intersect(&self, shape: &Shape, ray: Ray3<f32>, length: f32) -> bool {
+        self.shape.shadow_intersect(shape, ray, length)
     }
 
     pub fn normal(&self, point: Point3<f32>) -> Vector3<f32> {

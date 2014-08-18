@@ -10,8 +10,15 @@ pub use cgmath::plane::Plane;
 pub trait Shape : PrivateShape {
     fn intersect(&self, Ray3<f32>) -> Option<(&Shape, Point3<f32>)>;
     fn normal(&self, Point3<f32>) -> Vector3<f32>;
-    fn intersect_except_shape(&self, shape: &Shape, ray: Ray3<f32>) -> bool {
-        !self.equals_shape(shape) && self.intersect(ray).is_some()
+    fn shadow_intersect(&self, shape: &Shape, ray: Ray3<f32>, length: f32) -> bool {
+        if self.equals_shape(shape) {
+            false
+        } else {
+            match self.intersect(ray) {
+                None => false,
+                Some((_, p)) => p.sub_p(&ray.origin).length() < length
+            }
+        }
     }
 }
 

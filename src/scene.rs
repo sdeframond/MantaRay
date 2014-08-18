@@ -33,9 +33,9 @@ impl Scene {
         intersections.pop()
     }
 
-    pub fn intersect_except_shape(&self, shape: &Shape, ray: Ray3<f32>) -> bool {
-        ! self.objects.iter().any(|obj| {
-            obj.intersect_except_shape(shape, ray)
+    pub fn shadow_intersect(&self, shape: &Shape, ray: Ray3<f32>, length: f32) -> bool {
+        self.objects.iter().any(|obj| {
+            obj.shadow_intersect(shape, ray, length)
         })
     }
 }
