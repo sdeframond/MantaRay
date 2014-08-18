@@ -20,22 +20,18 @@ trait PrivateShape {
     fn equals_shape(&self, &Shape) -> bool;
 }
 
-macro_rules! impl_private_shape(
-    ($t:ty) => (
-        impl PrivateShape for $t {
-            fn as_any(&self) -> &Any {
-                self as &Any
-            }
+impl<T: 'static + PartialEq> PrivateShape for T {
+    fn as_any(&self) -> &Any {
+        self as &Any
+    }
 
-            fn equals_shape(&self, other: &Shape) -> bool {
-                match other.as_any().downcast_ref::<$t>() {
-                    None => false,
-                    Some(sphere) => self == sphere
-                }
-            }
+    fn equals_shape(&self, other: &Shape) -> bool {
+        match other.as_any().downcast_ref::<T>() {
+            None => false,
+            Some(sphere) => self == sphere
         }
-    )
-)
+    }
+}
 
 macro_rules! cgmath_intersect(
     () => (
@@ -48,8 +44,6 @@ macro_rules! cgmath_intersect(
     )
 )
 
-impl_private_shape!(Sphere<f32>)
-
 impl Shape for Sphere<f32> {
 
     cgmath_intersect!()
@@ -58,8 +52,6 @@ impl Shape for Sphere<f32> {
         point.sub_p(&self.center).normalize()
     }
 }
-
-impl_private_shape!(Plane<f32>)
 
 impl Shape for Plane<f32> {
 
