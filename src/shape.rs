@@ -58,7 +58,7 @@ impl Shape for Plane<f32> {
     cgmath_intersect!()
 
     fn normal(&self, _: Point3<f32>) -> Vector3<f32> {
-        self.n
+        self.n.normalize()
     }
 }
 
@@ -67,4 +67,13 @@ fn test_sphere_normal() {
     let sphere = Sphere {center: Point::origin(), radius: 1.0};
     let n = sphere.normal(Point3::new(1.0, 0.0, 0.0));
     assert!(n == Vector3::new(1.0, 0.0, 0.0));
+}
+
+#[test]
+fn test_plane_normal_length_is_one() {
+    let p = Plane::from_abcd(1.0f32, 1.0, 1.0, 0.0);
+    let n = p.normal(Point3::new(0.0, 0.0, 0.0));
+    let delta = 0.0000001;
+    assert!(n.length() < 1.0 + delta);
+    assert!(n.length() > 1.0 - delta);
 }
