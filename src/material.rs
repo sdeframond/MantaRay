@@ -19,7 +19,7 @@ impl Material for DiffuseMaterial {
 
     fn reflectance(&self, n: Vector3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light {
         let proj = dot(n, -dir_in);
-        if proj > 0.0 {
+        if proj > 0.0 && dot(n, dir_out) > 0.0 {
             let diffuse = self.diffuse.mul_s(proj);
             let dir_in_reflection = dir_in.add_v(&n.mul_s(2.0).mul_s(proj));
             let alignment = dot(dir_out, dir_in_reflection);
@@ -86,5 +86,9 @@ mod tests {
         assert!(res == Light::zero());
         let res = mat.reflectance(normal, -dir_in, dir_out);
         assert!(res != Light::zero());
+        let res = mat.reflectance(normal, dir_in, -dir_out);
+        assert!(res == Light::zero());
+        let res = mat.reflectance(normal, -dir_in, -dir_out);
+        assert!(res == Light::zero());
     }
 }
