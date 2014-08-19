@@ -20,6 +20,13 @@ pub trait Shape : PrivateShape {
             }
         }
     }
+    fn intersect_without_shape(&self, shape: &Shape, ray: Ray3<f32>) -> Option<(&Shape, Point3<f32>)> {
+        if self.equals_shape(shape) {
+            None
+        } else {
+            self.intersect(ray)
+        }
+    }
 }
 
 trait PrivateShape {

@@ -1,14 +1,19 @@
 use cgmath::ray::{Ray, Ray3};
 use cgmath::vector::EuclideanVector;
-use cgmath::point::Point;
+use cgmath::point::{Point, Point3};
 
 use scene::Scene;
+use object::Object;
 use light::Light;
 use shape::Shape;
 use material::Material;
 
-pub fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
-    match scene.intersect(ray) {
+pub fn trace_path(scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
+    do_trace_path(scene.intersect(ray), scene, ray, bounces)
+}
+
+fn do_trace_path(intersection: Option<(&Object, &Shape, Point3<f32>)>, scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
+    match intersection {
         None => scene.background(ray.direction),
         Some((object, shape, point)) => {
             let mut reflected = Light::zero();
@@ -21,6 +26,13 @@ pub fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
                     let reflectance = object.reflectance(point, -unit_to_light, -ray.direction);
                     reflected = reflected + source.intensity(point).mul_l(reflectance);
                 }
+            }
+            if bounces > 0 {
+                let tracer = |new_ray: Ray3<f32>| {
+                    let intersection = scene.intersect_without_shape(shape, new_ray);
+                    do_trace_path(intersection, scene, new_ray, bounces-1)
+                };
+                reflected = reflected + object.next_step(point, ray.direction, tracer);
             }
             reflected + object.emittance(point, -ray.direction)
         }
@@ -40,7 +52,7 @@ mod tests {
 
     macro_rules! assert_tp(
         ($scene:expr, $ray:expr, $r:expr, $g:expr, $b:expr) => (
-            assert!(Light::new($r, $g, $b) == trace_path($scene, $ray))
+            assert!(Light::new($r, $g, $b) == trace_path($scene, $ray, 1))
         );
     )
 

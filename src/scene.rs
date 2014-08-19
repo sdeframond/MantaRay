@@ -12,18 +12,36 @@ pub struct Scene {
     pub light_sources: Vec<Box<LightSource>>
 }
 
+type IntersectionInfo<'r> = (&'r Object, &'r Shape, Point3<f32>);
+
 impl Scene {
     pub fn background(&self, _direction: Vector3<f32>) -> Light {
         Light::zero()
     }
 
-    pub fn intersect(&self, ray: Ray3<f32>) -> Option<(&Object, &Shape, Point3<f32>)> {
-        let mut intersections: Vec<(&Object, &Shape, Point3<f32>)> = self.objects.iter()
+    pub fn intersect(&self, ray: Ray3<f32>) -> Option<IntersectionInfo> {
+        let mut intersections: Vec<IntersectionInfo> = self.objects.iter()
             .map(|obj| obj.intersect(ray))
             .filter(|opt| opt.is_some())
             .map(|opt| opt.unwrap())
             .collect();
-        let distance_cmp = |v1: &(&Object, &Shape, Point3<f32>), v2: &(&Object, &Shape, Point3<f32>)| {
+        let distance_cmp = |v1: &IntersectionInfo, v2: &IntersectionInfo| {
+            cmp_float(
+                ray.origin.sub_p(v2.ref2()).length(),
+                ray.origin.sub_p(v1.ref2()).length()
+            )
+        };
+        intersections.sort_by(distance_cmp);
+        intersections.pop()
+    }
+
+    pub fn intersect_without_shape(&self, shape: &Shape, ray: Ray3<f32>) -> Option<IntersectionInfo> {
+        let mut intersections: Vec<IntersectionInfo> = self.objects.iter()
+            .map(|obj| obj.intersect_without_shape(shape, ray))
+            .filter(|opt| opt.is_some())
+            .map(|opt| opt.unwrap())
+            .collect();
+        let distance_cmp = |v1: &IntersectionInfo, v2: &IntersectionInfo| {
             cmp_float(
                 ray.origin.sub_p(v2.ref2()).length(),
                 ray.origin.sub_p(v1.ref2()).length()
