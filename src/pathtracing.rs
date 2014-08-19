@@ -14,11 +14,11 @@ pub fn trace_path(scene: &Scene, ray: Ray3<f32>) -> Light {
             let mut reflected = Light::zero();
             for source in scene.light_sources.iter() {
                 let vec_to_light = source.origin().sub_p(&point);
-                let shadow_ray = Ray::new(point, vec_to_light.normalize());
+                let unit_to_light = vec_to_light.normalize();
+                let shadow_ray = Ray::new(point, unit_to_light);
                 let shadowed = scene.shadow_intersect(shape, shadow_ray, vec_to_light.length());
                 if !shadowed {
-                    let dir_in = point.sub_p(&source.origin()).normalize();
-                    let reflectance = object.reflectance(point, dir_in, -ray.direction);
+                    let reflectance = object.reflectance(point, -unit_to_light, -ray.direction);
                     reflected = reflected + source.intensity(point).mul_l(reflectance);
                 }
             }

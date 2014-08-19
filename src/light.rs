@@ -19,7 +19,7 @@ impl LightSource {
     pub fn origin(&self) -> Point3<f32> { self.origin }
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 pub struct Light {
     pub red: f32,
     pub green: f32,
