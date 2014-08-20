@@ -59,27 +59,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scene_intersect_hit() {
-        let delta = 0.000001;
-        let sphere = box Sphere {center: Point3::new(0.0f32, 0.0, 5.0), radius: 4.0};
-        let obj = Object {shape: sphere, material: box TestMaterial};
-        let scene = Scene {objects: vec![obj], light_sources: vec![]};
-        let ray_hit = Ray::new(Point::origin(), Vector3::new(0.0, 0.0, 1.0));
-        assert!(Point3::new(0.0, 0.0, 1.0) == get_point(&scene, ray_hit));
-        let ray_miss = Ray::new(Point3::new(10.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
-        assert!(scene.intersect(ray_miss).is_none());
-        let ray_border1 = Ray::new(Point3::new(4.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
-        assert!(Point3::new(4.0, 0.0, 5.0) == get_point(&scene, ray_border1));
-        let ray_near1 = Ray::new(Point3::new(4.0 + delta, 0.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
-        assert!(scene.intersect(ray_near1).is_none());
-        let ray_near_oblique = Ray::new(Point::origin(), Vector3::new(12.0/5.0 + delta, 0.0, 9.0/5.0).normalize());
-        assert!(scene.intersect(ray_near_oblique).is_none());
-        let ray_hit_oblique = Ray::new(Point::origin(), Vector3::new(12.0/5.0, 0.0, 9.0/5.0).normalize());
-        assert!(scene.intersect(ray_hit_oblique).is_some());
-    }
-
-    #[test]
-    fn test_scene_intersect_depth() {
+    fn test_scene_intersect() {
         let p1 = Object {shape: box Plane::from_abcd(0.0f32, 0.0, -1.0, 1.0), material: box TestMaterial};
         let p2 = Object {shape: box Plane::from_abcd(0.0f32, 0.0, -1.0, 2.0), material: box TestMaterial};
         let scene = Scene {objects: vec![p1, p2], light_sources: vec![]};

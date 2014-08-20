@@ -123,7 +123,7 @@ fn make_scene() -> Scene {
         material: box ReflectiveMaterial::new(1.0, 0.9, 0.3)
     };
     let glass = Object {
-        shape: box Sphere {center: Point3::new(2.1f32, 2.3, 6.1), radius: 0.7},
+        shape: box Sphere {center: Point3::new(0.8f32, 0.7, 3.7), radius: 0.7},
         // material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
         material: box RefractiveMaterial::new(1.0, 1.0, 1.0, 1.4)
     };

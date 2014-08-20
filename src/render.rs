@@ -11,7 +11,7 @@ use pathtracing::trace_path;
 
 pub fn pixel<T: Camera>(camera: &T, scene: &Scene, x: u32, y: u32) -> image::Rgb<u8> {
     let ray = camera.make_ray(x, y);
-    color_from_light(trace_path(scene, ray, 2))
+    color_from_light(trace_path(scene, ray, 3))
 }
 
 pub fn image(width: u32, height: u32, renderer: PixelRenderer) -> image::ImageBuf<image::Rgb<u8>> {
