@@ -2,57 +2,31 @@ use cgmath::point::{Point, Point3};
 use cgmath::ray::Ray3;
 use cgmath::intersect::Intersect;
 use cgmath::vector::{EuclideanVector, Vector3};
-use std::any::{Any, AnyRefExt};
 
 pub use cgmath::sphere::Sphere;
 pub use cgmath::plane::Plane;
 
-pub trait Shape : PrivateShape {
-    fn intersect(&self, Ray3<f32>) -> Option<(&Shape, Point3<f32>)>;
+pub trait Shape {
+    fn intersect(&self, Ray3<f32>) -> Option<Point3<f32>>;
     fn normal(&self, Point3<f32>) -> Vector3<f32>;
-    fn shadow_intersect(&self, shape: &Shape, ray: Ray3<f32>, length: f32) -> bool {
-        if self.equals_shape(shape) {
-            false
-        } else {
-            match self.intersect(ray) {
-                None => false,
-                Some((_, p)) => p.sub_p(&ray.origin).length() < length
-            }
-        }
-    }
-    fn intersect_without_shape(&self, shape: &Shape, ray: Ray3<f32>) -> Option<(&Shape, Point3<f32>)> {
-        if self.equals_shape(shape) {
-            None
-        } else {
-            self.intersect(ray)
-        }
-    }
-}
-
-trait PrivateShape {
-    fn as_any(&self) -> &Any;
-    fn equals_shape(&self, &Shape) -> bool;
-}
-
-impl<T: 'static + PartialEq> PrivateShape for T {
-    fn as_any(&self) -> &Any {
-        self as &Any
-    }
-
-    fn equals_shape(&self, other: &Shape) -> bool {
-        match other.as_any().downcast_ref::<T>() {
+    fn shadow_intersect(&self, ray: Ray3<f32>, length: f32) -> bool {
+        match self.intersect(ray) {
             None => false,
-            Some(sphere) => self == sphere
+            Some(p) => p.sub_p(&ray.origin).length() < length
         }
     }
 }
 
 macro_rules! cgmath_intersect(
     () => (
-        fn intersect(&self, ray: Ray3<f32>) -> Option<(&Shape, Point3<f32>)> {
+        fn intersect(&self, ray: Ray3<f32>) -> Option<Point3<f32>> {
             match (*self, ray).intersection() {
                 None => None,
-                Some(value) => Some((self as &Shape, value))
+                Some(point) => if point.sub_p(&ray.origin).length() > 0.001 {
+                    Some(point)
+                } else {
+                    None
+                }
             }
         }
     )

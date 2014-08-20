@@ -5,33 +5,25 @@ use cgmath::point::{Point, Point3};
 use scene::Scene;
 use object::Object;
 use light::Light;
-use shape::Shape;
 use material::Material;
 
 pub fn trace_path(scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
-    do_trace_path(scene.intersect(ray), scene, ray, bounces)
-}
-
-fn do_trace_path(intersection: Option<(&Object, &Shape, Point3<f32>)>, scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
-    match intersection {
+    match scene.intersect(ray) {
         None => scene.background(ray.direction),
-        Some((object, shape, point)) => {
+        Some((object, point)) => {
             let mut reflected = Light::zero();
             for source in scene.light_sources.iter() {
                 let vec_to_light = source.origin().sub_p(&point);
                 let unit_to_light = vec_to_light.normalize();
                 let shadow_ray = Ray::new(point, unit_to_light);
-                let shadowed = scene.shadow_intersect(shape, shadow_ray, vec_to_light.length());
+                let shadowed = scene.shadow_intersect(shadow_ray, vec_to_light.length());
                 if !shadowed {
                     let reflectance = object.reflectance(point, -unit_to_light, -ray.direction);
                     reflected = reflected + source.intensity(point).mul_l(reflectance);
                 }
             }
             if bounces > 0 {
-                let tracer = |new_ray: Ray3<f32>| {
-                    let intersection = scene.intersect_without_shape(shape, new_ray);
-                    do_trace_path(intersection, scene, new_ray, bounces-1)
-                };
+                let tracer = |new_ray: Ray3<f32>| trace_path(scene, new_ray, bounces-1);
                 reflected = reflected + object.next_step(point, ray.direction, tracer);
             }
             reflected + object.emittance(point, -ray.direction)

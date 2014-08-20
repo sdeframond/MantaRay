@@ -12,7 +12,7 @@ pub struct Scene {
     pub light_sources: Vec<Box<LightSource>>
 }
 
-type IntersectionInfo<'r> = (&'r Object, &'r Shape, Point3<f32>);
+type IntersectionInfo<'r> = (&'r Object, Point3<f32>);
 
 impl Scene {
     pub fn background(&self, _direction: Vector3<f32>) -> Light {
@@ -27,33 +27,17 @@ impl Scene {
             .collect();
         let distance_cmp = |v1: &IntersectionInfo, v2: &IntersectionInfo| {
             cmp_float(
-                ray.origin.sub_p(v2.ref2()).length(),
-                ray.origin.sub_p(v1.ref2()).length()
+                ray.origin.sub_p(v2.ref1()).length(),
+                ray.origin.sub_p(v1.ref1()).length()
             )
         };
         intersections.sort_by(distance_cmp);
         intersections.pop()
     }
 
-    pub fn intersect_without_shape(&self, shape: &Shape, ray: Ray3<f32>) -> Option<IntersectionInfo> {
-        let mut intersections: Vec<IntersectionInfo> = self.objects.iter()
-            .map(|obj| obj.intersect_without_shape(shape, ray))
-            .filter(|opt| opt.is_some())
-            .map(|opt| opt.unwrap())
-            .collect();
-        let distance_cmp = |v1: &IntersectionInfo, v2: &IntersectionInfo| {
-            cmp_float(
-                ray.origin.sub_p(v2.ref2()).length(),
-                ray.origin.sub_p(v1.ref2()).length()
-            )
-        };
-        intersections.sort_by(distance_cmp);
-        intersections.pop()
-    }
-
-    pub fn shadow_intersect(&self, shape: &Shape, ray: Ray3<f32>, length: f32) -> bool {
+    pub fn shadow_intersect(&self, ray: Ray3<f32>, length: f32) -> bool {
         self.objects.iter().any(|obj| {
-            obj.shadow_intersect(shape, ray, length)
+            obj.shadow_intersect(ray, length)
         })
     }
 }
@@ -71,7 +55,7 @@ mod tests {
     use material::TestMaterial;
 
     fn get_point(scene: &Scene, ray: Ray3<f32>) -> Point3<f32> {
-        scene.intersect(ray).unwrap().val2()
+        scene.intersect(ray).unwrap().val1()
     }
 
     #[test]
