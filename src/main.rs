@@ -40,6 +40,7 @@ fn main() {
     let _ = image::ImageRgb8(imbuf).save(fout, image::PNG);
 }
 
+// // Currently runs 7x slower. No output.
 // fn main() {
 //     let scene = Arc::new(make_scene());
 //     let (width, height) = (1000, 1000);
@@ -59,6 +60,7 @@ fn main() {
 //     let _ = image::ImageRgb8(imbuf).save(fout, image::PNG);
 // }
 
+// // Currently runs 6x slower.
 // fn main() {
 //     let scene = Arc::new(make_scene());
 //     let (width, height) = (1000, 1000);
@@ -89,25 +91,36 @@ fn main() {
 //     let _ = image::ImageRgb8(imbuf).save(fout, image::PNG);
 // }
 
+// // Currently runs 1.3x to 10x slower, the more tasks in the pool the slower.
 // fn main() {
 //     let (width, height) = (1000, 1000);
 //     let camera = OriginCamera {aperture: 1.0, height: width, width: height};
 //     let scene = Arc::new(make_scene());
 //     let imlock = Arc::new(RWLock::new(image::ImageBuf::new(width, height)));
-//     let mut pool = TaskPool::new(1, || proc(_tid) { () } );
+//     let mut counter = Arc::new(RWLock::new(width * height));
+//     let mut pool = TaskPool::new(100, || proc(_tid) { () } );
 //     for y in range(0, height) {
 //         for x in range(0, width) {
 //             let task_imlock = imlock.clone();
+//             let task_counter = counter.clone();
 //             let task_scene = scene.clone();
 //             pool.execute(proc(_) {
 //                 let pixel = render::pixel(&camera, task_scene.deref(), x, y);
-//                 let mut imbuf = task_imlock.write();
-//                 imbuf.put_pixel(x, y, pixel);
-//                 imbuf.downgrade();
+//                 {
+//                     let mut imbuf = task_imlock.write();
+//                     imbuf.put_pixel(x, y, pixel);
+//                 }
+//                 let mut count = task_counter.write();
+//                 *count = *count - 1;
 //             });
 //         }
 //     }
-
+//     loop {
+//         let c = *counter.read();
+//         if c == 0 { break };
+//         println!("c = {}, Waiting for 1s...", c);
+//         std::io::timer::sleep( std::time::duration::Duration::seconds(1));
+//     }
 //     let fout = File::create(&Path::new("result.png")).unwrap();
 //     let _ = image::ImageRgb8(imlock.read().clone()).save(fout, image::PNG);
 // }
