@@ -22,7 +22,7 @@ mod camera;
 mod light;
 mod material;
 mod object;
-mod pathtracing;
+mod raytracing;
 mod render;
 mod scene;
 mod shape;

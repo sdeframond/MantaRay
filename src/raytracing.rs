@@ -6,7 +6,7 @@ use scene::Scene;
 use light::Light;
 use material::Material;
 
-pub fn trace_path(scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
+pub fn trace_ray(scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
     match scene.intersect(ray) {
         None => scene.background(ray.direction),
         Some((object, point)) => {
@@ -22,7 +22,7 @@ pub fn trace_path(scene: &Scene, ray: Ray3<f32>, bounces: uint) -> Light {
                 }
             }
             if bounces > 0 {
-                let tracer = |new_ray: Ray3<f32>| trace_path(scene, new_ray, bounces-1);
+                let tracer = |new_ray: Ray3<f32>| trace_ray(scene, new_ray, bounces-1);
                 reflected = reflected + object.next_step(point, ray.direction, tracer);
             }
             reflected + object.emittance(point, -ray.direction)
