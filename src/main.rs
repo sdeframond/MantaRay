@@ -13,7 +13,7 @@ use std::io::File;
 
 use camera::OriginCamera;
 use light::{Light, LightSource};
-use material::{EmitterMaterial, DiffuseMaterial, ReflectiveMaterial};
+use material::{EmitterMaterial, DiffuseMaterial, ReflectiveMaterial, RefractiveMaterial};
 use object::Object;
 use scene::Scene;
 use shape::{Sphere, Plane};
@@ -114,12 +114,18 @@ fn main() {
 
 fn make_scene() -> Scene {
     let sphere = Object {
-        shape: box Sphere {center: Point3::new(1.5f32, 2.7, 4.5), radius: 0.3},
+        shape: box Sphere {center: Point3::new(1.5f32, 2.5, 4.7), radius: 0.5},
         material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
     };
     let mirror = Object {
-        shape: box Sphere {center: Point3::new(-1.0f32, 2.0, 5.0), radius: 1.0},
+        shape: box Sphere {center: Point3::new(-1.0f32, 1.5, 5.0), radius: 1.5},
+        // material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
         material: box ReflectiveMaterial::new(1.0, 0.9, 0.3)
+    };
+    let glass = Object {
+        shape: box Sphere {center: Point3::new(2.1f32, 2.3, 6.1), radius: 0.7},
+        // material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
+        material: box RefractiveMaterial::new(1.0, 1.0, 1.0, 1.4)
     };
     let bottom = make_plane(0.0f32, -1.0, 0.0, 3.0);
     let top = make_plane(0.0f32, 1.0, 0.0, 3.0);
@@ -129,7 +135,7 @@ fn make_scene() -> Scene {
     let (light_src1, l1) = make_light_source(-2.0, -2.0, 4.0, 2.0, 2.0, 2.0);
     let (light_src2, l2) = make_light_source(2.0, -1.0, 5.0, 2.0, 2.0, 2.0);
     Scene {
-        objects: vec![bottom, top, left, right, back, sphere, mirror],
+        objects: vec![bottom, top, left, right, back, sphere, mirror, glass],
         light_sources: vec![box light_src1, box light_src2]
     }
 }

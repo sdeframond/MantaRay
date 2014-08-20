@@ -1,6 +1,6 @@
 use light::Light;
 use cgmath::vector::{dot, Vector, Vector3};
-use cgmath::point::Point3;
+use cgmath::point::{Point, Point3};
 use cgmath::ray::{Ray, Ray3};
 
 pub trait Material {
@@ -54,12 +54,12 @@ impl Material for EmitterMaterial {
 }
 
 pub struct ReflectiveMaterial {
-    reflection_color: Light
+    color: Light
 }
 
 impl ReflectiveMaterial {
     pub fn new(r: f32, g: f32, b: f32) -> ReflectiveMaterial {
-        ReflectiveMaterial { reflection_color: Light::new(r,g,b) }
+        ReflectiveMaterial { color: Light::new(r,g,b) }
     }
 }
 
@@ -68,7 +68,39 @@ impl Material for ReflectiveMaterial {
         let reflected_dir = dir_in.sub_v(&n.mul_s(2.0 * dot(n, dir_in)));
         let ray = Ray::new(point, reflected_dir);
         let reflected = tracer(ray);
-        self.reflection_color.mul_l(reflected)
+        self.color.mul_l(reflected)
+    }
+}
+
+pub struct RefractiveMaterial {
+    color: Light,
+    index: f32
+}
+
+impl RefractiveMaterial {
+    pub fn new(r: f32, g: f32, b: f32, i: f32) -> RefractiveMaterial {
+        RefractiveMaterial { color: Light::new(r,g,b), index: i }
+    }
+}
+
+impl Material for RefractiveMaterial {
+    fn next_step(&self, point: Point3<f32>, n: Vector3<f32>, dir_in: Vector3<f32>, tracer: |Ray3<f32>| -> Light) -> Light {
+        let proj = dot(n, dir_in);
+        let cos_theta1 = proj.abs();
+        let r = if proj < 0.0 { 1.0/self.index } else { self.index };
+        let squared_cos_theta2 = 1.0 - r.powi(2)*(1.0 - cos_theta1.powi(2));
+        let refracted_dir = if squared_cos_theta2 > 0.0 {
+            let cos_theta2 = squared_cos_theta2.sqrt();
+            let reverse = if proj < 0.0 { 1.0 } else { -1.0 };
+            let k = reverse*(r*cos_theta1 - cos_theta2);
+            dir_in.mul_s(r).add_v(&n.mul_s(k))
+        } else {
+            // Just relfect the incoming ray.
+            dir_in.sub_v(&n.mul_s(2.0 * proj))
+        };
+        let ray = Ray::new(point, refracted_dir);
+        let reflected = tracer(ray);
+        self.color.mul_l(reflected)
     }
 }
 
@@ -89,7 +121,7 @@ impl Material for TestMaterial {
 #[cfg(test)]
 mod tests {
 
-    use material::{Material, DiffuseMaterial, ReflectiveMaterial};
+    use material::{Material, DiffuseMaterial, ReflectiveMaterial, RefractiveMaterial};
     use cgmath::vector::Vector3;
     use cgmath::point::Point3;
     use cgmath::ray::Ray3;
@@ -106,6 +138,73 @@ mod tests {
             assert!(ray.direction.x == -dir_in.x);
             assert!(ray.direction.y == dir_in.y);
             assert!(ray.direction.z == dir_in.z);
+            Light::white(0.2)
+        };
+        let res = mat.next_step(p, normal, dir_in, tracer);
+        assert!(res == Light::new(0.2, 0.2, 0.0))
+    }
+
+    #[test]
+    fn test_refractive_material_next_step_outside_in() {
+        let mat = RefractiveMaterial::new(1.0, 1.0, 0.0, 1.3);
+        let p = Point3::new(0.0, 0.0, 0.0);
+        let normal = Vector3::new(1.0, 0.0, 0.0);
+        let dir_in = -normal;
+        let tracer = |ray: Ray3<f32>| {
+            assert!(ray.origin == p);
+            println!("ray.direction = {}", ray.direction);
+            assert!(ray.direction == dir_in);
+            Light::white(0.2)
+        };
+        let res = mat.next_step(p, normal, dir_in, tracer);
+        assert!(res == Light::new(0.2, 0.2, 0.0))
+    }
+
+    #[test]
+    fn test_refractive_material_next_step_outside_in_tangent() {
+        let mat = RefractiveMaterial::new(1.0, 1.0, 0.0, 1.3);
+        let p = Point3::new(0.0, 0.0, 0.0);
+        let normal = Vector3::new(1.0, 0.0, 0.0);
+        let dir_in = Vector3::new(-0.00000000000001, 1.0, 0.0);
+        let tracer = |ray: Ray3<f32>| {
+            assert!(ray.origin == p);
+            println!("ray.direction = {}", ray.direction);
+            assert!(ray.direction.x < -0.6389);
+            assert!(ray.direction.y > 0.7692);
+            Light::white(0.2)
+        };
+        let res = mat.next_step(p, normal, dir_in, tracer);
+        assert!(res == Light::new(0.2, 0.2, 0.0))
+    }
+
+    #[test]
+    fn test_refractive_material_next_step_inside_out_tangent() {
+        let mat = RefractiveMaterial::new(1.0, 1.0, 0.0, 1.3);
+        let p = Point3::new(0.0, 0.0, 0.0);
+        let normal = Vector3::new(1.0, 0.0, 0.0);
+        let dir_in = Vector3::new(0.00000000000001, 1.0, 0.0);
+        let tracer = |ray: Ray3<f32>| {
+            assert!(ray.origin == p);
+            assert!(ray.direction.x == -dir_in.x);
+            assert!(ray.direction.y == dir_in.y);
+            assert!(ray.direction.z == dir_in.z);
+            Light::white(0.2)
+        };
+        let res = mat.next_step(p, normal, dir_in, tracer);
+        assert!(res == Light::new(0.2, 0.2, 0.0))
+    }
+
+    #[test]
+    fn test_refractive_material_next_step_inside_out() {
+        let mat = RefractiveMaterial::new(1.0, 1.0, 0.0, 1.3);
+        let p = Point3::new(0.0, 0.0, 0.0);
+        let normal = Vector3::new(1.0, 0.0, 0.0);
+        let dir_in = normal;
+        let tracer = |ray: Ray3<f32>| {
+            assert!(ray.origin == p);
+            println!("ray.direction = {}", ray.direction);
+            println!("dir_in = {}", dir_in);
+            assert!(ray.direction == dir_in);
             Light::white(0.2)
         };
         let res = mat.next_step(p, normal, dir_in, tracer);
