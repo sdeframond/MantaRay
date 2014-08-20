@@ -1,9 +1,8 @@
 use cgmath::ray::{Ray, Ray3};
 use cgmath::vector::EuclideanVector;
-use cgmath::point::{Point, Point3};
+use cgmath::point::Point;
 
 use scene::Scene;
-use object::Object;
 use light::Light;
 use material::Material;
 
