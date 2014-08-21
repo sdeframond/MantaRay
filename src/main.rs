@@ -13,7 +13,7 @@ use std::io::File;
 
 use camera::OriginCamera;
 use light::{Light, LightSource};
-use material::{EmitterMaterial, DiffuseMaterial, ReflectiveMaterial, RefractiveMaterial};
+use material::{EmitterMaterial, DiffuseMaterial, ReflectiveMaterial, RefractiveMaterial, GlobalDiffuseMaterial};
 use object::Object;
 use scene::Scene;
 use shape::{Sphere, Plane};
@@ -128,7 +128,8 @@ fn main() {
 fn make_scene() -> Scene {
     let sphere = Object {
         shape: box Sphere {center: Point3::new(1.5f32, 2.5, 4.7), radius: 0.5},
-        material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
+        // material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
+        material: box GlobalDiffuseMaterial::new(0.0, 0.0, 0.6, 5)
     };
     let mirror = Object {
         shape: box Sphere {center: Point3::new(-1.0f32, 1.5, 5.0), radius: 1.5},
@@ -140,23 +141,38 @@ fn make_scene() -> Scene {
         // material: box DiffuseMaterial { diffuse: Light::new(0.0, 0.0, 0.6), specular: Light::white(0.4), shininess: 50.0 }
         material: box RefractiveMaterial::new(1.0, 1.0, 1.0, 1.4)
     };
-    let bottom = make_plane(0.0f32, -1.0, 0.0, 3.0);
-    let top = make_plane(0.0f32, 1.0, 0.0, 3.0);
-    let right = make_plane(-1.0f32, 0.0, 0.0, 3.0);
-    let left = make_plane(1.0f32, 0.0, 0.0, 3.0);
-    let back = make_plane(0.0f32, 0.0, -1.0, 7.0);
+    let bottom = make_global_diffuse_plane(0.0f32, -1.0, 0.0, 3.0);
+    let top = make_emitter_plane(0.0f32, 1.0, 0.0, 3.0);
+    let right = make_global_diffuse_plane(-1.0f32, 0.0, 0.0, 3.0);
+    let left = make_global_diffuse_plane(1.0f32, 0.0, 0.0, 3.0);
+    let back = make_global_diffuse_plane(0.0f32, 0.0, -1.0, 7.0);
     let (light_src1, l1) = make_light_source(-2.0, -2.0, 4.0, 2.0, 2.0, 2.0);
     let (light_src2, l2) = make_light_source(2.0, -1.0, 5.0, 2.0, 2.0, 2.0);
     Scene {
-        objects: vec![bottom, top, left, right, back, sphere, mirror, glass],
-        light_sources: vec![box light_src1, box light_src2]
+        objects: vec![bottom, top, left, right, back, mirror, glass, sphere],
+        light_sources: vec![]
     }
 }
 
-fn make_plane(a: f32, b: f32, c: f32, d: f32) -> Object {
+// fn make_plane(a: f32, b: f32, c: f32, d: f32) -> Object {
+//     Object {
+//         shape: box Plane::from_abcd(a, b, c, d),
+//         material: box DiffuseMaterial { diffuse: Light::white(0.9), specular: Light::white(0.1), shininess: 50.0 }
+//     }
+// }
+
+fn make_emitter_plane(a: f32, b: f32, c: f32, d: f32) -> Object {
     Object {
         shape: box Plane::from_abcd(a, b, c, d),
-        material: box DiffuseMaterial { diffuse: Light::white(0.9), specular: Light::white(0.1), shininess: 50.0 }
+        material: box EmitterMaterial::new(3.0, 3.0, 3.0)
+    }
+}
+
+fn make_global_diffuse_plane(a: f32, b: f32, c: f32, d: f32) -> Object {
+    Object {
+        shape: box Plane::from_abcd(a, b, c, d),
+        // material: box ReflectiveMaterial::new(1.0, 1.0, 1.0)
+        material: box GlobalDiffuseMaterial::new(0.9, 0.9, 0.9, 5)
     }
 }
 

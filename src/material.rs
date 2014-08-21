@@ -1,7 +1,11 @@
 use light::Light;
-use cgmath::vector::{dot, Vector, Vector3};
+use cgmath::vector::{dot, EuclideanVector, Vector, Vector3};
 use cgmath::point::{Point, Point3};
 use cgmath::ray::{Ray, Ray3};
+use std::rand;
+use std::rand::Rng;
+use std::rand::distributions::{IndependentSample, Range};
+use std::f32;
 
 pub trait Material {
     fn emittance(&self, _n: Vector3<f32>, _dir: Vector3<f32>) -> Light {
@@ -17,8 +21,14 @@ pub trait Material {
 
 pub struct DiffuseMaterial {
     pub diffuse: Light,
-    pub specular: Light,
-    pub shininess: f32
+    // pub specular: Light,
+    // pub shininess: f32
+}
+
+impl DiffuseMaterial {
+    pub fn new(r: f32, g: f32, b: f32) -> DiffuseMaterial {
+        DiffuseMaterial { diffuse: Light::new(r, g, b) }
+    }
 }
 
 impl Material for DiffuseMaterial {
@@ -26,14 +36,60 @@ impl Material for DiffuseMaterial {
         let proj = dot(n, -dir_in);
         if proj * dot(n, dir_out) > 0.0 {
             let proj = proj.abs();
-            let diffuse = self.diffuse.mul_s(proj);
-            let dir_in_reflection = dir_in.add_v(&n.mul_s(2.0).mul_s(proj));
-            let alignment = dot(dir_out, dir_in_reflection);
-            let specular = self.specular.mul_s(alignment.powf(self.shininess));
-            diffuse + specular
+            self.diffuse.mul_s(proj)
+            // let dir_in_reflection = dir_in.add_v(&n.mul_s(2.0).mul_s(proj));
+            // let alignment = dot(dir_out, dir_in_reflection);
+            // let specular = self.specular.mul_s(alignment.powf(self.shininess));
+            // diffuse + specular
         } else {
             Light::zero()
         }
+    }
+}
+
+pub struct GlobalDiffuseMaterial {
+    diffuse: Light,
+    n_rays: uint,
+}
+
+impl GlobalDiffuseMaterial {
+    pub fn new(r: f32, g: f32, b:f32, n: uint) -> GlobalDiffuseMaterial {
+        GlobalDiffuseMaterial { diffuse: Light::new(r,g,b), n_rays: n }
+    }
+}
+
+fn unit_vec_from_angles(theta: f32, phi: f32) -> Vector3<f32> {
+    Vector3::new(
+        theta.sin() * phi.cos(),
+        theta.sin() * phi.sin(),
+        theta.cos()
+    )
+}
+
+impl Material for GlobalDiffuseMaterial {
+    fn reflectance(&self, n: Vector3<f32>, dir_in: Vector3<f32>, dir_out: Vector3<f32>) -> Light {
+        let proj = dot(n, -dir_in);
+        if proj * dot(n, dir_out) > 0.0 {
+            let proj = proj.abs();
+            self.diffuse.mul_s(proj)
+        } else {
+            Light::zero()
+        }
+    }
+    fn next_step(&self, point: Point3<f32>, n: Vector3<f32>, dir_in: Vector3<f32>, tracer: |Ray3<f32>| -> Light) -> Light {
+        let mut received = Light::zero();
+        let proj_in = dot(n, dir_in);
+        let mut rng = rand::task_rng();
+        let between = Range::new(-f32::consts::PI, f32::consts::PI);
+        for i in range(0, self.n_rays) {
+            let mut dir_out = unit_vec_from_angles(between.ind_sample(&mut rng), between.ind_sample(&mut rng));
+            let proj_out = dot(dir_out, n);
+            if proj_out * proj_in > 0.0 {
+                dir_out = -dir_out;
+            }
+            received = received + tracer(Ray::new(point, dir_out.normalize())).mul_s(proj_out.abs());
+        }
+        self.diffuse.mul_l(received.mul_s(1.0 / self.n_rays as f32))
     }
 }
 
