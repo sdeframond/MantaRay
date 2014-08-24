@@ -9,7 +9,7 @@ see [here](./examples/)
 
 ## Usage
 
-Edit the scene in `mains.rs`, then `Cargo run`. The output will generated in `result.png`.
+Edit the scene in `mains.rs`, then `Cargo run`. The output will be generated in `result.png`.
 
 ## Features
 
